@@ -1,0 +1,32 @@
+# Web framework / API services (SOA)
+fastapi
+uvicorn[standard]
+pydantic
+
+# Database
+mysql-connector-python
+
+# UI
+flask
+requests
+
+# IR datasets loader
+ir_datasets
+
+# Text preprocessing
+nltk
+
+# Representation models
+scikit-learn
+rank_bm25
+sentence-transformers
+faiss-cpu
+
+# Query refinement
+pyspellchecker
+
+# Data / utils
+pandas
+numpy<2
+joblib
+tqdm

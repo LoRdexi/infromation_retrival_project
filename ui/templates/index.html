@@ -29,10 +29,8 @@
                 <div>
                     <label for="dataset" class="block text-gray-700 font-bold mb-2">اختر مجموعة البيانات:</label>
                     <select id="dataset" class="shadow-sm appearance-none border rounded-lg w-full py-2 px-3 text-gray-700">
-                        <option value="antique">Antique</option>
-                        <option value="beir/quora">Quora</option>
-                        <option value="lotte/lifestyle/dev">LOTTE (Lifestyle)</option>
-                        <option value="wikir/en1k/test">Wikir (EN)</option>
+                        <option value="beir/quora/test">Quora</option>
+                        <option value="wikir/en1k/test">WikIR EN</option>
                     </select>
                 </div>
                 <div>
@@ -59,10 +57,21 @@
                         <input type="number" id="bm25_b" value="0.75" step="0.05" class="shadow-sm border rounded-lg w-full py-2 px-3">
                     </div>
                 </div>
-                <!-- Hybrid model weight slider, hidden by default -->
-                <div id="hybrid-params" class="hidden">
-                    <label for="hybrid_weight" class="block text-gray-700 font-bold mb-2">وزن BM25 في النموذج الهجين: <span id="weight-value">0.8</span></label>
-                    <input type="range" id="hybrid_weight" min="0" max="1" value="0.8" step="0.05" class="w-full">
+                <!-- Hybrid options (type selector + weight), hidden by default -->
+                <div id="hybrid-params" class="hidden space-y-4">
+                    <!-- Choose between parallel (fusion) and serial (retrieve-then-rerank) -->
+                    <div>
+                        <label for="hybrid_type" class="block text-gray-700 font-bold mb-2">نوع التمثيل الهجين:</label>
+                        <select id="hybrid_type" class="shadow-sm appearance-none border rounded-lg w-full py-2 px-3 text-gray-700">
+                            <option value="parallel">متوازي (Parallel) — دمج النتائج بالأوزان</option>
+                            <option value="serial">تسلسلي (Serial) — استرجاع BM25 ثم إعادة ترتيب BERT</option>
+                        </select>
+                    </div>
+                    <!-- BM25 weight only matters for the parallel (fusion) mode -->
+                    <div id="hybrid-weight-wrapper">
+                        <label for="hybrid_weight" class="block text-gray-700 font-bold mb-2">وزن BM25 في النموذج الهجين: <span id="weight-value">0.8</span></label>
+                        <input type="range" id="hybrid_weight" min="0" max="1" value="0.8" step="0.05" class="w-full">
+                    </div>
                 </div>
             </div>
 

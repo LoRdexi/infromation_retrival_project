@@ -5,9 +5,25 @@ import ir_datasets # A library for easily accessing information retrieval datase
 import mysql.connector # To connect to and interact with a MySQL database
 from tqdm import tqdm # To show a progress bar for long loops
 
+# --- Windows fix for the ir_datasets CSV reader (needed by wikir, etc.) ---
+# ir_datasets internally calls csv.field_size_limit(sys.maxsize // 1000), which
+# overflows the 32-bit C long on Windows and raises OverflowError. We wrap the
+# function so oversized limits are clamped to the largest value a C long allows
+# (still ~2.1 billion, far bigger than any real document field).
+import csv as _csv
+_orig_field_size_limit = _csv.field_size_limit
+def _safe_field_size_limit(limit=None):
+    if limit is None:
+        return _orig_field_size_limit()
+    try:
+        return _orig_field_size_limit(int(limit))
+    except OverflowError:
+        return _orig_field_size_limit(2147483647)  # max C long on Windows
+_csv.field_size_limit = _safe_field_size_limit
+
 # Import custom modules
-from core.text_preprocessor import TextPreprocessor 
-from config import DB_CONFIG 
+from core.text_preprocessor import TextPreprocessor
+from config import DB_CONFIG
 
 # Define the structure of the request body for the /load-dataset/ endpoint
 class DatasetRequest(BaseModel):

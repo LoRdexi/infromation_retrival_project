@@ -34,6 +34,8 @@ class SearchRequest(BaseModel):
     enable_ner_reranking: bool = False
     # The weight to give the BM25 score in the hybrid model
     hybrid_bm25_weight: float = 0.8
+    # Which hybrid strategy to use: 'parallel' (score fusion) or 'serial' (BM25 then BERT re-rank)
+    hybrid_type: str = Field("parallel", description="'parallel' (fusion) or 'serial' (retrieve-then-rerank)")
     # A flag to enable or disable cluster-based re-ranking
     enable_cluster_reranking: bool = False
 
@@ -223,6 +225,38 @@ class SearchService:
         # Return the top k hybrid results
         return [{'doc_id': doc_id, 'score': score} for doc_id, score in sorted_docs[:k]]
 
+    # Search method that runs BM25 first, then re-ranks its candidates with BERT (SERIAL hybrid)
+    def _search_hybrid_serial(self, processed_query, original_query, models, k, k1, b):
+        # --- STAGE 1: fast keyword retrieval with BM25 to get a candidate pool ---
+        # Pull a pool larger than k so the semantic stage has room to re-order.
+        first_stage_n = max(100, k)
+        bm25_candidates = self._search_bm25(processed_query, models, first_stage_n, k1, b)
+        if not bm25_candidates:
+            return []
+
+        # --- STAGE 2: re-rank those candidates by BERT semantic similarity ---
+        # Encode the query once into a BERT vector.
+        query_embedding = models['bert_model'].encode([original_query]).astype('float32')
+        # Rebuild each candidate's stored BERT vector straight from the FAISS index
+        # (reconstruct), so we don't need to load the full embeddings file or re-encode docs.
+        idx_map = models['doc_id_to_idx']
+        candidate_vectors, valid_ids = [], []
+        for cand in bm25_candidates:
+            doc_id = cand['doc_id']
+            if doc_id in idx_map:
+                candidate_vectors.append(models['faiss_index'].reconstruct(idx_map[doc_id]))
+                valid_ids.append(doc_id)
+        # If no vectors could be rebuilt, fall back to the BM25 ordering.
+        if not candidate_vectors:
+            return bm25_candidates[:k]
+
+        candidate_matrix = np.vstack(candidate_vectors).astype('float32')
+        # Cosine similarity between the query vector and each candidate document vector.
+        scores = cosine_similarity(query_embedding, candidate_matrix).flatten()
+        # Sort the candidates by their new semantic score and keep the top k.
+        reranked = sorted(zip(valid_ids, scores), key=lambda item: item[1], reverse=True)
+        return [{'doc_id': doc_id, 'score': float(score)} for doc_id, score in reranked[:k]]
+
     # The main public search method that orchestrates the entire process
     def search(self, req: SearchRequest):
         # Load the necessary models for the requested dataset
@@ -237,9 +271,15 @@ class SearchService:
             'tfidf': lambda: self._search_tfidf(processed_query, models, initial_retrieval_size),
             'bm25': lambda: self._search_bm25(processed_query, models, initial_retrieval_size, req.k1, req.b),
             'bert': lambda: self._search_bert(req.query, models, initial_retrieval_size),
-            'hybrid': lambda: self._search_hybrid_weighted_sum(
-                processed_query, req.query, models, initial_retrieval_size,
-                req.k1, req.b, req.hybrid_bm25_weight
+            'hybrid': lambda: (
+                self._search_hybrid_serial(
+                    processed_query, req.query, models, initial_retrieval_size, req.k1, req.b
+                )
+                if req.hybrid_type == 'serial'
+                else self._search_hybrid_weighted_sum(
+                    processed_query, req.query, models, initial_retrieval_size,
+                    req.k1, req.b, req.hybrid_bm25_weight
+                )
             )
         }
         if req.model_type not in base_model_map: raise HTTPException(status_code=400, detail="Invalid model_type")

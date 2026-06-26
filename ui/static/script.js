@@ -8,6 +8,8 @@ const bm25ParamsDiv = document.getElementById('bm25-params');
 const hybridParamsDiv = document.getElementById('hybrid-params');
 const hybridWeightSlider = document.getElementById('hybrid_weight');
 const weightValueSpan = document.getElementById('weight-value');
+const hybridTypeSelect = document.getElementById('hybrid_type');
+const hybridWeightWrapper = document.getElementById('hybrid-weight-wrapper');
 const nerToggle = document.getElementById('ner-rerank-toggle');
 const clusterToggle = document.getElementById('cluster-rerank-toggle');
 const suggestionsBox = document.getElementById('suggestions-box');
@@ -17,6 +19,7 @@ let suggestionTimeout; // A variable to hold the timeout for suggestion fetching
 // --- Add event listeners to interactive elements ---
 modelSelect.addEventListener('change', toggleParams); // When the model is changed, show/hide relevant params
 hybridWeightSlider.addEventListener('input', () => { weightValueSpan.textContent = hybridWeightSlider.value; }); // Update the weight value display as the slider moves
+hybridTypeSelect.addEventListener('change', toggleHybridWeight); // Show/hide the BM25 weight depending on the chosen hybrid type
 searchBtn.addEventListener('click', performSearch); // When the search button is clicked, start a search
 queryInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') performSearch(); }); // Also search when Enter is pressed in the input box
 queryInput.addEventListener('input', handleSuggestionInput); // When the user types, fetch suggestions
@@ -29,6 +32,7 @@ document.addEventListener('click', (e) => {
 
 // --- Initial setup when the page loads ---
 toggleParams(); // Set the initial visibility of parameter sections based on the default model
+toggleHybridWeight(); // Set the initial visibility of the BM25 weight slider
 weightValueSpan.textContent = hybridWeightSlider.value; // Set the initial text for the slider value
 
 // --- Define all the functions for page interactivity ---
@@ -40,6 +44,11 @@ function toggleParams() {
     bm25ParamsDiv.classList.toggle('hidden', !(selectedModel === 'bm25' || selectedModel === 'hybrid'));
     // Show hybrid params only if 'hybrid' is selected
     hybridParamsDiv.classList.toggle('hidden', selectedModel !== 'hybrid');
+}
+
+// Hides the BM25-weight slider when 'serial' hybrid is chosen (the weight only applies to parallel/fusion)
+function toggleHybridWeight() {
+    hybridWeightWrapper.classList.toggle('hidden', hybridTypeSelect.value === 'serial');
 }
 
 // Handles fetching suggestions as the user types
@@ -100,6 +109,7 @@ async function performSearch() {
         enable_ner_reranking: nerToggle.checked,
         enable_cluster_reranking: clusterToggle.checked,
         hybrid_bm25_weight: parseFloat(hybridWeightSlider.value),
+        hybrid_type: hybridTypeSelect.value,
         top_k: 10
     };
 

@@ -1,116 +1,135 @@
 <!DOCTYPE html>
-<!-- Set the language to Arabic and direction to right-to-left -->
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seekly</title>
-    <!-- Include Tailwind CSS for styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Include the 'Cairo' font from Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <title>Atlas — محرك بحث استرجاع المعلومات</title>
+
+    <!-- Distinctive type: Fraunces (display serif) · IBM Plex Sans Arabic (body) · JetBrains Mono (data) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <link rel="stylesheet" href="../static/styles.css">
-    <link rel="icon" type="image/png" sizes="32x32" href="seekly_favicon_32x32.png">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%230a0a0e'/%3E%3Ccircle cx='14' cy='14' r='6' fill='none' stroke='%23F6A94A' stroke-width='2.5'/%3E%3Cline x1='18.5' y1='18.5' x2='24' y2='24' stroke='%23F6A94A' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
 </head>
-<body class="text-gray-800">
-    <!-- Main container for the page content -->
-    <div class="container mx-auto p-4 md:p-8">
-        <!-- Page header -->
-        <div class="text-center mb-8">
-            <h1 class="text-4xl md:text-5xl font-bold text-gray-900">Seekly</h1>
-            <p class="text-lg text-gray-600 mt-2">ابحث في مجموعات البيانات باستخدام نماذج متقدمة</p>
-        </div>
+<body>
+    <!-- Atmospheric background layers -->
+    <div class="bg-aurora" aria-hidden="true"></div>
+    <div class="bg-grain" aria-hidden="true"></div>
 
-        <!-- Main search form container -->
-        <div class="bg-white p-6 rounded-2xl shadow-lg max-w-3xl mx-auto">
-            <!-- Grid for dataset and model selection dropdowns -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label for="dataset" class="block text-gray-700 font-bold mb-2">اختر مجموعة البيانات:</label>
-                    <select id="dataset" class="shadow-sm appearance-none border rounded-lg w-full py-2 px-3 text-gray-700">
-                        <option value="beir/quora/test">Quora</option>
-                        <option value="wikir/en1k/test">WikIR EN</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="model_type" class="block text-gray-700 font-bold mb-2">اختر نموذج البحث:</label>
-                    <select id="model_type" class="shadow-sm appearance-none border rounded-lg w-full py-2 px-3 text-gray-700">
-                        <option value="hybrid">Hybrid</option>
-                        <option value="bm25">BM25</option>
-                        <option value="bert">BERT</option>
-                        <option value="tfidf">TF-IDF</option>
-                    </select>
-                </div>
-            </div>
-            
-            <!-- Section for model-specific parameters (BM25 and Hybrid) -->
-            <div id="params-section" class="space-y-4 mb-4">
-                <!-- BM25 parameters (k1 and b), hidden by default -->
-                <div id="bm25-params" class="grid grid-cols-1 md:grid-cols-2 gap-4 hidden">
-                    <div>
-                        <label for="bm25_k1" class="block text-gray-700 font-bold mb-2">BM25 k1:</label>
-                        <input type="number" id="bm25_k1" value="1.6" step="0.1" class="shadow-sm border rounded-lg w-full py-2 px-3">
-                    </div>
-                    <div>
-                        <label for="bm25_b" class="block text-gray-700 font-bold mb-2">BM25 b:</label>
-                        <input type="number" id="bm25_b" value="0.75" step="0.05" class="shadow-sm border rounded-lg w-full py-2 px-3">
-                    </div>
-                </div>
-                <!-- Hybrid options (type selector + weight), hidden by default -->
-                <div id="hybrid-params" class="hidden space-y-4">
-                    <!-- Choose between parallel (fusion) and serial (retrieve-then-rerank) -->
-                    <div>
-                        <label for="hybrid_type" class="block text-gray-700 font-bold mb-2">نوع التمثيل الهجين:</label>
-                        <select id="hybrid_type" class="shadow-sm appearance-none border rounded-lg w-full py-2 px-3 text-gray-700">
-                            <option value="parallel">متوازي (Parallel) — دمج النتائج بالأوزان</option>
-                            <option value="serial">تسلسلي (Serial) — استرجاع BM25 ثم إعادة ترتيب BERT</option>
+    <main class="app">
+        <!-- Hero -->
+        <header class="hero">
+            <span class="hero-badge">نظام استرجاع المعلومات · SOA</span>
+            <h1 class="brand">Atlas</h1>
+            <p class="tagline">ابحث في ملايين الوثائق باستخدام نماذج تمثيل متقدمة — <em>TF‑IDF</em> · <em>BM25</em> · <em>BERT</em> · <em>هجين</em></p>
+        </header>
+
+        <!-- Search console -->
+        <section class="console">
+            <div class="console-sheen" aria-hidden="true"></div>
+
+            <!-- Dataset + model -->
+            <div class="grid-2">
+                <div class="field">
+                    <label class="field-label" for="dataset">مجموعة البيانات</label>
+                    <div class="select">
+                        <select id="dataset">
+                            <option value="beir/quora/test">Quora</option>
+                            <option value="wikir/en1k/test">WikIR EN</option>
                         </select>
+                        <span class="select-caret" aria-hidden="true"></span>
                     </div>
-                    <!-- BM25 weight only matters for the parallel (fusion) mode -->
-                    <div id="hybrid-weight-wrapper">
-                        <label for="hybrid_weight" class="block text-gray-700 font-bold mb-2">وزن BM25 في النموذج الهجين: <span id="weight-value">0.8</span></label>
-                        <input type="range" id="hybrid_weight" min="0" max="1" value="0.8" step="0.05" class="w-full">
+                </div>
+                <div class="field">
+                    <label class="field-label" for="model_type">نموذج البحث</label>
+                    <div class="select">
+                        <select id="model_type">
+                            <option value="hybrid">Hybrid · هجين</option>
+                            <option value="bm25">BM25</option>
+                            <option value="bert">BERT</option>
+                            <option value="tfidf">TF‑IDF</option>
+                        </select>
+                        <span class="select-caret" aria-hidden="true"></span>
                     </div>
                 </div>
             </div>
 
-            <!-- Search query input section -->
-            <div class="mb-4">
-                <label for="query" class="block text-gray-700 font-bold mb-2">أدخل استعلام البحث:</label>
-                <div class="relative">
-                    <!-- The text input for the search query -->
-                    <input type="text" id="query" class="shadow-sm border rounded-lg w-full py-3 px-4 text-gray-700" placeholder="اكتب هنا..." autocomplete="off">
-                    <!-- A container for displaying query suggestions, positioned absolutely below the input -->
-                    <div id="suggestions-box" class="absolute z-10 w-full bg-white border border-gray-300 rounded-b-lg mt-1 hidden shadow-lg"></div>
+            <!-- Model-specific parameters -->
+            <div id="params-section" class="params">
+                <!-- BM25 k1 / b -->
+                <div id="bm25-params" class="grid-2 hidden">
+                    <div class="field">
+                        <label class="field-label" for="bm25_k1">BM25 · k1</label>
+                        <input type="number" id="bm25_k1" class="input" value="1.6" step="0.1">
+                    </div>
+                    <div class="field">
+                        <label class="field-label" for="bm25_b">BM25 · b</label>
+                        <input type="number" id="bm25_b" class="input" value="0.75" step="0.05">
+                    </div>
+                </div>
+                <!-- Hybrid type + fusion weight -->
+                <div id="hybrid-params" class="stack hidden">
+                    <div class="field">
+                        <label class="field-label" for="hybrid_type">نوع التمثيل الهجين</label>
+                        <div class="select">
+                            <select id="hybrid_type">
+                                <option value="parallel">متوازي (Parallel) — دمج النتائج بالأوزان</option>
+                                <option value="serial">تسلسلي (Serial) — استرجاع BM25 ثم إعادة ترتيب BERT</option>
+                            </select>
+                            <span class="select-caret" aria-hidden="true"></span>
+                        </div>
+                    </div>
+                    <div id="hybrid-weight-wrapper" class="field">
+                        <label class="field-label" for="hybrid_weight">وزن BM25 في الدمج <span class="weight-chip" id="weight-value">0.8</span></label>
+                        <input type="range" id="hybrid_weight" class="slider" min="0" max="1" value="0.8" step="0.05">
+                    </div>
                 </div>
             </div>
-            
-            <!-- Section for NER toggle and the main search button -->
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <div class="flex items-center">
-                        <input id="ner-rerank-toggle" type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
-                        <label for="ner-rerank-toggle" class="ms-2 text-sm font-medium text-gray-900">تفعيل تحسين NER</label>
-                    </div>
-                    <div class="flex items-center">
-                        <input id="cluster-rerank-toggle" type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
-                        <label for="cluster-rerank-toggle" class="ms-2 text-sm font-medium text-gray-900">تفعيل تحسين بالمجموعات</label>
-                    </div>
+
+            <!-- Query -->
+            <div class="field">
+                <label class="field-label" for="query">استعلام البحث</label>
+                <div class="search-wrap">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+                        <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <input type="text" id="query" class="search-input" placeholder="اكتب سؤالك هنا…" autocomplete="off">
+                    <div id="suggestions-box" class="suggestions hidden"></div>
                 </div>
-                <button id="search-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-md focus:outline-none focus:shadow-outline transition-transform transform hover:scale-105">
-                    بحث
+            </div>
+
+            <!-- Toggles + action -->
+            <div class="actions">
+                <div class="toggles">
+                    <label class="switch">
+                        <input id="ner-rerank-toggle" type="checkbox">
+                        <span class="switch-track"></span>
+                        <span class="switch-label">تحسين NER</span>
+                    </label>
+                    <label class="switch">
+                        <input id="cluster-rerank-toggle" type="checkbox">
+                        <span class="switch-track"></span>
+                        <span class="switch-label">تحسين بالمجموعات</span>
+                    </label>
+                </div>
+                <button id="search-btn" class="btn-search">
+                    <span>بحث</span>
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
                 </button>
             </div>
-        </div>
+        </section>
 
-        <!-- Divs to display search status (like "Searching...") and the final results -->
-        <div id="status" class="mt-6 text-center"></div>
-        <div id="alternative-suggestions" class="mt-4 text-center"></div>
-        <div id="results" class="mt-4 space-y-4 max-w-4xl mx-auto"></div>
-    </div>
+        <!-- Status / suggestions / results -->
+        <div id="status" class="status"></div>
+        <div id="alternative-suggestions" class="alt-suggestions"></div>
+        <div id="results" class="results"></div>
+    </main>
 
     <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 </body>
 </html>
-

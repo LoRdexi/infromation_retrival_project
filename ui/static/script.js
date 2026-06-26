@@ -85,7 +85,7 @@ function displaySuggestions(suggestions) {
     suggestions.forEach(suggestion => {
         const div = document.createElement('div');
         div.textContent = suggestion;
-        div.className = 'p-2 hover:bg-gray-100 cursor-pointer';
+        div.className = 'suggestion-item';
         // When a suggestion is clicked, fill the input with it and hide the box
         div.onclick = () => {
             queryInput.value = suggestion;
@@ -115,12 +115,12 @@ async function performSearch() {
 
     // Don't search if the query is empty
     if (!payload.query.trim()) {
-        statusDiv.innerHTML = `<p class="text-red-500 font-semibold">الرجاء إدخال استعلام للبحث.</p>`;
+        statusDiv.innerHTML = `<p class="status-error">الرجاء إدخال استعلام للبحث.</p>`;
         return;
     }
 
     // Update the UI to show that a search is in progress
-    statusDiv.innerHTML = '<div class="loader"></div><p class="text-blue-600 font-semibold">جاري البحث...</p>';
+    statusDiv.innerHTML = '<div class="loader"></div><p class="status-msg">جاري البحث…</p>';
     resultsDiv.innerHTML = ''; // Clear old results
     alternativeSuggestionsDiv.innerHTML = ''; // Clear old suggestions
     searchBtn.disabled = true; // Disable the button to prevent multiple clicks
@@ -143,7 +143,7 @@ async function performSearch() {
         displayResults(results); // Display the new results
     } catch (error) {
         // If an error occurred, show it in the status div
-        statusDiv.innerHTML = `<p class="text-red-500 font-semibold">فشل البحث: ${error.message}</p>`;
+        statusDiv.innerHTML = `<p class="status-error">فشل البحث: ${error.message}</p>`;
     } finally {
         // Re-enable the search button, whether the search succeeded or failed
         searchBtn.disabled = false;
@@ -153,27 +153,42 @@ async function performSearch() {
 // Renders the search results on the page
 function displayResults(results) {
     if (!results || results.length === 0) {
-        resultsDiv.innerHTML = '<p class="text-center text-gray-500">لم يتم العثور على نتائج.</p>';
+        resultsDiv.innerHTML = '<p class="results-empty">لم يتم العثور على نتائج.</p>';
         return;
     }
-    // Loop through each result and create an HTML element for it
-    results.forEach(result => {
-        const resultEl = document.createElement('div');
-        resultEl.className = 'bg-white p-5 rounded-xl shadow-md';
-        const p = document.createElement('p');
-        p.className = 'text-gray-700';
-        p.textContent = result.original_text;
-        // Use innerHTML to easily create the header with the doc ID and score
-        resultEl.innerHTML = `
-            <div class="flex justify-between items-center mb-2">
-                <h3 class="text-lg font-bold text-gray-900">معرف المستند: ${result.doc_id}</h3>
-                <div>
-                    <p class="text-sm text-white bg-green-500 font-bold py-1 px-3 rounded-full inline-block">Cluster: ${result.cluster_id}</p>
-                    <p class="text-sm text-white bg-blue-500 font-bold py-1 px-3 rounded-full inline-block ml-2">${result.score.toFixed(4)}</p>
-                </div>
-            </div>`;
-        resultEl.appendChild(p); // Append the paragraph with the text
-        resultsDiv.appendChild(resultEl); // Add the new result element to the page
+    resultsDiv.innerHTML = ''; // Clear any previous results
+    // Loop through each result and build a card for it
+    results.forEach((result, i) => {
+        const card = document.createElement('div');
+        card.className = 'result-card';
+        card.style.animationDelay = (i * 0.06) + 's'; // staggered entrance
+
+        // Header: rank, document id, optional cluster tag, and the relevance score
+        const head = document.createElement('div');
+        head.className = 'result-head';
+        const clusterBadge = (result.cluster_id !== undefined && result.cluster_id >= 0)
+            ? `<span class="badge badge-cluster">مجموعة ${result.cluster_id}</span>` : '';
+        head.innerHTML = `
+            <span class="result-meta">
+                <span class="result-rank">${i + 1}</span>
+                <span class="result-id">#${result.doc_id}</span>
+            </span>
+            <span class="result-badges">
+                ${clusterBadge}
+                <span class="badge badge-score">
+                    <span class="score-label">Relevance</span>
+                    <span class="score-value">${result.score.toFixed(4)}</span>
+                </span>
+            </span>`;
+
+        // Body: the original document text (textContent keeps any HTML in docs harmless)
+        const text = document.createElement('p');
+        text.className = 'result-text';
+        text.textContent = result.original_text;
+
+        card.appendChild(head);
+        card.appendChild(text);
+        resultsDiv.appendChild(card);
     });
 }
 
@@ -195,19 +210,19 @@ function displayAlternativeSuggestions(suggestions) {
 
     // Display corrected query if available
     if (suggestions.corrected_query) {
-        content += `<p class="mb-2">هل تقصد: <a href="#" class="text-blue-600 hover:underline" onclick="runNewSearch('${suggestions.corrected_query}')">${suggestions.corrected_query}</a></p>`;
+        content += `<p>هل تقصد: <a href="#" onclick="runNewSearch('${suggestions.corrected_query}'); return false;">${suggestions.corrected_query}</a></p>`;
     }
 
     // Display suggestions from query logs
     if (suggestions.log_suggestions && suggestions.log_suggestions.length > 0) {
-        const logLinks = suggestions.log_suggestions.map(q => 
-            `<a href="#" class="text-blue-600 hover:underline" onclick="runNewSearch('${q}')">${q}</a>`
-        ).join(', ');
+        const logLinks = suggestions.log_suggestions.map(q =>
+            `<a href="#" onclick="runNewSearch('${q}'); return false;">${q}</a>`
+        ).join('، ');
         content += `<p>استعلامات مشابهة: ${logLinks}</p>`;
     }
 
     if (content) {
-        alternativeSuggestionsDiv.innerHTML = `<div class="bg-gray-100 p-4 rounded-lg">${content}</div>`;
+        alternativeSuggestionsDiv.innerHTML = `<div class="alt-card">${content}</div>`;
     }
 }
 

@@ -45,3 +45,8 @@ config.py
 .DS_Store
 Thumbs.db
 
+# 9. Generated evaluation charts (large PNG files)
+evaluation_results_*.png
+
+# 10. Representation build log
+representation_build.log

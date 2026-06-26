@@ -61,12 +61,14 @@ def build_representations_robust(dataset_name: str):
 
         # --- STAGE 1: Build TF-IDF and BM25. These are done in memory as they need the full corpus at once. ---
         print("\n--- STAGE 1: Building TF-IDF and BM25 In-Memory ---", flush=True)
-        # SQL query to get all processed (cleaned) text from the database for the given dataset
-        query_processed = f"SELECT processed_text FROM documents WHERE dataset = '{dataset_name}' AND processed_text IS NOT NULL AND processed_text != ''"
+        # Get the cleaned text for ALL docs in a deterministic order (by doc_id), keeping empty
+        # processed_text as '' instead of filtering it out. This guarantees the TF-IDF/BM25 rows
+        # line up 1:1 with the doc_ids and FAISS vectors built in STAGE 2 (also ordered by doc_id).
+        query_processed = f"SELECT COALESCE(processed_text, '') AS processed_text FROM documents WHERE dataset = '{dataset_name}' ORDER BY doc_id"
         # Use pandas to execute the query and load the results into a DataFrame
         df_processed = pd.read_sql(query_processed, cnx)
         # Convert the 'processed_text' column of the DataFrame into a list of strings
-        corpus_processed = df_processed['processed_text'].tolist()
+        corpus_processed = df_processed['processed_text'].fillna('').tolist()
         
         # Build the TF-IDF model
         print(f"Building TF-IDF model on {len(corpus_processed)} documents...", flush=True)
@@ -120,10 +122,10 @@ def build_representations_robust(dataset_name: str):
         
         # Process the documents in batches
         offset = 0
-        with tqdm(total=total_docs, desc="Processing Document Batches") as pbar:
+        with tqdm(total=total_docs, desc="Processing Document Batches", disable=True) as pbar:
             while offset < total_docs:
                 # SQL query to fetch a batch of documents using LIMIT and OFFSET
-                query_batch = f"SELECT doc_id, original_text, processed_text FROM documents WHERE dataset = '{dataset_name}' LIMIT {offset}, {DB_BATCH_SIZE}"
+                query_batch = f"SELECT doc_id, original_text, processed_text FROM documents WHERE dataset = '{dataset_name}' ORDER BY doc_id LIMIT {offset}, {DB_BATCH_SIZE}"
                 df_batch = pd.read_sql(query_batch, cnx)
                 
                 # If the batch is empty, we've processed all documents, so break the loop
@@ -146,17 +148,17 @@ def build_representations_robust(dataset_name: str):
                         # Append the current document's ID to the term's list
                         inverted_index[term].append(batch_doc_ids[i])
 
-                # Generate BERT embeddings for the original text in the batch
-                print(f"\nEncoding {len(batch_original)} documents with BERT...", flush=True)
+                # Generate BERT embeddings for the original text in the batch.
+                # show_progress_bar is off so the log stays small — one clean line per chunk is printed instead.
                 batch_embeddings = bert_model.encode(
-                    batch_original, convert_to_numpy=True, show_progress_bar=True, batch_size=16
+                    batch_original, convert_to_numpy=True, show_progress_bar=False, batch_size=16
                 )
-                
+
                 # Add the generated embeddings to the FAISS index
                 faiss_index.add(batch_embeddings.astype('float32'))
                 # Append the batch embeddings to our list for later saving
-                full_embeddings_list.append(batch_embeddings.astype('float32')) 
-                print(f"  - FAISS index now contains {faiss_index.ntotal} vectors.", flush=True)
+                full_embeddings_list.append(batch_embeddings.astype('float32'))
+                print(f"  - Chunk done: {faiss_index.ntotal:,}/{total_docs:,} documents encoded.", flush=True)
                 
                 # Move to the next batch
                 offset += len(df_batch)

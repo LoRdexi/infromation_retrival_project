@@ -1,5 +1,15 @@
 # Atlas — Information Retrieval System
 
+> [!CAUTION]
+> ## 🔴 ORIGINAL REPOSITORY
+> **This is a mirror. The original and up-to-date repository is hosted on GitLab:**
+>
+> ### ➜ [gitlab.com/LoRdex/information_retrival_project](https://gitlab.com/LoRdex/information_retrival_project)
+>
+> All development, commits, and issues are tracked there. This GitHub copy may be outdated.
+
+---
+
 > A full-stack Information Retrieval engine built with Service-Oriented Architecture (SOA), supporting TF-IDF, BM25, BERT, and Hybrid search over 500K+ documents.
 
 ---
